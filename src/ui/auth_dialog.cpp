@@ -165,6 +165,13 @@ void AuthDialogManager::show_dialog(
         ->addView(contentLayout, LayoutParams(static_cast<int>(LayoutDimension::MatchParent), static_cast<int>(LayoutDimension::MatchParent)))
         ->build();
 
+    rootCard->set_on_click_listener([this]() {
+        if (m_password_input) {
+            m_password_input->set_focused(true);
+            if (m_window) m_window->schedule_redraw();
+        }
+    });
+
     // 9. Modal Window with Dim Backdrop
     m_window = WindowBuilder::create()
         ->role(WindowRole::LayerOverlay)
@@ -173,17 +180,24 @@ void AuthDialogManager::show_dialog(
         ->title("Authentication Required")
         ->preferredSize(card_w, card_h)
         ->contentSize(card_w, card_h)
-        ->dimBackdrop(true)
+        ->anchors(0)
+        ->dimBackdrop(false)
         ->keyboardInteractive(true)
-        ->closeOnClickOutside(false)
-        ->closeOnEscape(false)
+        ->closeOnClickOutside(true)
+        ->closeOnEscape(true)
         ->contentView(rootCard)
         ->onClose([this]() {
             cancel_current();
         })
         ->onKey([this](const KeyPressEvent& event) {
-            if (event.pressed && event.keysym == XKB_KEY_Escape) {
+            if (!event.pressed) return;
+            if (event.keysym == XKB_KEY_Escape) {
                 cancel_current();
+                return;
+            }
+            if (m_password_input && !m_password_input->is_focused()) {
+                m_password_input->set_focused(true);
+                if (m_window) m_window->schedule_redraw();
             }
         })
         ->build();
