@@ -1,4 +1,5 @@
 #include "ui/auth_dialog.hpp"
+#include "config.hpp"
 #include <miqutoolkit/core/config.hpp>
 #include <algorithm>
 #include <iostream>
@@ -24,12 +25,13 @@ void AuthDialogManager::show_dialog(
     m_on_cancel = std::move(on_cancel);
 
     auto config = Config::get();
+    const auto& polkit_cfg = PolkitConfig::get();
 
     // 1. Header: Icon + Title
     std::string resolved_icon = icon_name.empty() ? "dialog-password" : icon_name;
     auto iconView = ImageViewBuilder::create()
         ->source(resolved_icon)
-        ->targetSize(32)
+        ->targetSize(polkit_cfg.icon_size)
         ->margin(0, 0, 10, 0)
         ->build();
 
@@ -142,20 +144,26 @@ void AuthDialogManager::show_dialog(
         ->build();
 
     // 7. Assemble Content Layout
-    auto contentLayout = LinearLayoutBuilder::create()
+    auto contentLayoutBuilder = LinearLayoutBuilder::create()
         ->orientation(Orientation::Vertical)
         ->spacing(12)
         ->addView(headerLayout, LayoutParams(static_cast<int>(LayoutDimension::MatchParent), static_cast<int>(LayoutDimension::WrapContent)))
-        ->addView(messageView, LayoutParams(static_cast<int>(LayoutDimension::MatchParent), msg_h))
-        ->addView(identityLayout, LayoutParams(static_cast<int>(LayoutDimension::MatchParent), static_cast<int>(LayoutDimension::WrapContent)))
+        ->addView(messageView, LayoutParams(static_cast<int>(LayoutDimension::MatchParent), msg_h));
+
+    if (polkit_cfg.show_user_identity) {
+        contentLayoutBuilder->addView(identityLayout, LayoutParams(static_cast<int>(LayoutDimension::MatchParent), static_cast<int>(LayoutDimension::WrapContent)));
+    }
+
+    auto contentLayout = contentLayoutBuilder
         ->addView(m_error_view, LayoutParams(static_cast<int>(LayoutDimension::MatchParent), 18))
         ->addView(m_password_input, LayoutParams(static_cast<int>(LayoutDimension::MatchParent), 42))
         ->addView(buttonLayout, LayoutParams(static_cast<int>(LayoutDimension::MatchParent), 38))
         ->build();
 
     // 8. Outer Card Container
-    int card_w = 440;
-    int card_h = 130 + msg_h + 160;
+    int card_w = polkit_cfg.width;
+    int identity_h = polkit_cfg.show_user_identity ? 44 : 0;
+    int card_h = 110 + msg_h + identity_h + 140;
 
     auto rootCard = CardViewBuilder::create()
         ->backgroundColor(config->colors.surface)
@@ -181,9 +189,9 @@ void AuthDialogManager::show_dialog(
         ->preferredSize(card_w, card_h)
         ->contentSize(card_w, card_h)
         ->anchors(0)
-        ->dimBackdrop(false)
+        ->dimBackdrop(polkit_cfg.dim_backdrop)
         ->keyboardInteractive(true)
-        ->closeOnClickOutside(true)
+        ->closeOnClickOutside(polkit_cfg.close_on_click_outside)
         ->closeOnEscape(true)
         ->contentView(rootCard)
         ->onClose([this]() {

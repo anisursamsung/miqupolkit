@@ -1,4 +1,5 @@
 #include "agent/polkit_listener.hpp"
+#include "config.hpp"
 #include <miqutoolkit/core/app_engine.hpp>
 #include <iostream>
 #include <csignal>
@@ -13,6 +14,10 @@ static void sig_handler(int sig) {
 int main(int argc, char* argv[]) {
     std::signal(SIGINT, sig_handler);
     std::signal(SIGTERM, sig_handler);
+
+    // Initialize configuration and theme
+    std::string custom_config = (argc > 1) ? argv[1] : "";
+    miqu::PolkitConfig::get().load(custom_config);
 
     std::cout << "[miqupolkit] Starting MiquLand PolicyKit Authentication Agent..." << std::endl;
 
