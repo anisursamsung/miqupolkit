@@ -320,7 +320,14 @@ bool PolkitAgent::start() {
     m_listener = POLKIT_AGENT_LISTENER(g_object_new(MIQU_TYPE_POLKIT_LISTENER, nullptr));
 
     GError* error = nullptr;
-    PolkitSubject* subject = polkit_unix_session_new_for_process_sync(getpid(), nullptr, &error);
+    PolkitSubject* subject = nullptr;
+    const char* session_id = getenv("XDG_SESSION_ID");
+    if (session_id && strlen(session_id) > 0) {
+        subject = polkit_unix_session_new(session_id);
+    }
+    if (!subject) {
+        subject = polkit_unix_session_new_for_process_sync(getpid(), nullptr, &error);
+    }
     if (!subject) {
         if (error) {
             std::cerr << "[miqupolkit] Warning: Session lookup failed: " << error->message
