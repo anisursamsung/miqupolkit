@@ -6,7 +6,7 @@ namespace miqu {
 
 struct PolkitConfig {
     int width = 440;
-    bool dim_backdrop = true;
+    bool dim_backdrop = false;
     bool close_on_click_outside = false;
     bool show_user_identity = true;
     int icon_size = 32;

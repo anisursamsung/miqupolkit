@@ -166,10 +166,10 @@ void AuthDialogManager::show_dialog(
     int card_h = 110 + msg_h + identity_h + 140;
 
     auto rootCard = CardViewBuilder::create()
-        ->backgroundColor(config->colors.surface)
-        ->stroke(config->metrics.border_width > 0 ? config->metrics.border_width : 1, config->colors.outline)
-        ->cornerRadius(config->metrics.corner_radius > 0 ? config->metrics.corner_radius : 14)
-        ->padding(20)
+        ->backgroundColor(config->colors.background)
+        ->stroke(config->metrics.border_width, config->colors.outline)
+        ->cornerRadius(config->metrics.corner_radius)
+        ->padding(16)
         ->addView(contentLayout, LayoutParams(static_cast<int>(LayoutDimension::MatchParent), static_cast<int>(LayoutDimension::MatchParent)))
         ->build();
 
@@ -180,23 +180,27 @@ void AuthDialogManager::show_dialog(
         }
     });
 
-    // 9. Modal Window with Dim Backdrop
-    m_window = WindowBuilder::create()
+    // 9. Layer overlay Window (matching miqulauncher)
+    auto builder = WindowBuilder::create()
         ->role(WindowRole::LayerOverlay)
-        ->layerNamespace("miqupolkit")
         ->appId("miqupolkit")
-        ->title("Authentication Required")
+        ->keyboardInteractive(true)
         ->preferredSize(card_w, card_h)
         ->contentSize(card_w, card_h)
-        ->anchors(0)
-        ->dimBackdrop(polkit_cfg.dim_backdrop)
-        ->keyboardInteractive(true)
         ->closeOnClickOutside(polkit_cfg.close_on_click_outside)
         ->closeOnEscape(true)
         ->contentView(rootCard)
         ->onClose([this]() {
             cancel_current();
-        })
+        });
+
+    if (!polkit_cfg.dim_backdrop) {
+        builder->anchors(0)->dimBackdrop(false);
+    } else {
+        builder->dimBackdrop(true);
+    }
+
+    m_window = builder
         ->onKey([this](const KeyPressEvent& event) {
             if (!event.pressed) return;
             if (event.keysym == XKB_KEY_Escape) {
