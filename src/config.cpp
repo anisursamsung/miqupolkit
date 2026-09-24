@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include <miqutoolkit/core/config.hpp>
+#include <miqutoolkit/core/fs_utils.hpp>
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
@@ -33,13 +34,12 @@ void PolkitConfig::load(const std::string& custom_path) {
     if (!custom_path.empty() && fs::exists(custom_path)) {
         target_path = custom_path;
     } else {
-        std::string user_conf = Config::ensure_user_config("miqupolkit", "miqupolkit.conf");
-        if (!user_conf.empty() && fs::exists(user_conf)) {
-            target_path = user_conf;
-        } else if (fs::exists("/usr/share/miqupolkit/miqupolkit.conf")) {
-            target_path = "/usr/share/miqupolkit/miqupolkit.conf";
-        } else if (fs::exists("assets/miqupolkit.conf")) {
-            target_path = "assets/miqupolkit.conf";
+        std::string user_cfg_dir = FsUtils::get_user_config_dir("miqupolkit");
+        if (!user_cfg_dir.empty()) {
+            std::string p = user_cfg_dir + "/miqupolkit.conf";
+            if (fs::exists(p)) {
+                target_path = p;
+            }
         }
     }
 
